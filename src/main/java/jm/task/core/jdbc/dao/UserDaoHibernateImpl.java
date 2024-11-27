@@ -5,6 +5,7 @@ import jm.task.core.jdbc.util.Util;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 
+import javax.persistence.TypedQuery;
 import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
 import javax.persistence.criteria.Root;
@@ -60,10 +61,13 @@ public class UserDaoHibernateImpl implements UserDao {
     public void removeUserById(long id) {
         try (Session session = sessionFactory.openSession()) {
             session.beginTransaction();
-            session.createSQLQuery("DELETE FROM users WHERE id=" + id).executeUpdate();
+            User user = session.get(User.class, id);
+            if (user != null) {
+                session.delete(user);
+            }
             session.getTransaction().commit();
         } catch (Exception e) {
-            sessionFactory.getCurrentSession().getTransaction().rollback();
+            e.printStackTrace();
         }
     }
 
@@ -71,15 +75,10 @@ public class UserDaoHibernateImpl implements UserDao {
     public List<User> getAllUsers() {
         List<User> users = null;
         try (Session session = sessionFactory.openSession()) {
-            session.beginTransaction();
-            CriteriaBuilder builder = session.getCriteriaBuilder();
-            CriteriaQuery<User> criteria = builder.createQuery(User.class);
-            Root<User> root = criteria.from(User.class);
-            criteria.select(root);
-            users = session.createQuery(criteria).getResultList();
-            session.getTransaction().commit();
+            TypedQuery<User> query = session.createQuery("FROM User", User.class);
+            users = query.getResultList();
         } catch (Exception e) {
-            sessionFactory.getCurrentSession().getTransaction().rollback();
+            e.printStackTrace();
         }
         return users;
     }
@@ -88,10 +87,10 @@ public class UserDaoHibernateImpl implements UserDao {
     public void cleanUsersTable() {
         try (Session session = sessionFactory.openSession()) {
             session.beginTransaction();
-            session.createSQLQuery("TRUNCATE TABLE users").executeUpdate();
+            session.createQuery("DELETE FROM User").executeUpdate();
             session.getTransaction().commit();
         } catch (Exception e) {
-            sessionFactory.getCurrentSession().getTransaction().rollback();
+            e.printStackTrace();
         }
     }
 }
